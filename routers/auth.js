@@ -40,7 +40,7 @@ const transporter = nodemailer.createTransport({
 
 router.post("/signup", async (req, res) => {
   // const { error, value } = registerSchema.validate(req.body);
-    const { name, email, Password } = req.body; 
+    const { name, email, Cnic } = req.body; 
     console.log(req.body);
     
     
@@ -54,11 +54,11 @@ router.post("/signup", async (req, res) => {
       true,
       "User with this email already registered."
     );
+  const password = jwt.sign({ cnic: Cnic }, secretCode);
+  //   const hashedPassword = await bcrypt.hash(Password, 12);
+  //  const  password = hashedPassword;
 
-    const hashedPassword = await bcrypt.hash(Password, 12);
-   const  password = hashedPassword;
-
-  let newUser = new User({name , email , password });
+  let newUser = new User({name , email ,Cnic ,  password });
     newUser = await newUser.save();
     const jwtToken = jwt.sign({ email: newUser.email, id: newUser._id }, secretCode, { expiresIn: "24h" });
     res.cookie("token", jwtToken);
@@ -73,6 +73,9 @@ router.post("/signup", async (req, res) => {
             <body>
                 <h1>Account Verification</h1>
                 <p>Click the link below to verify your account:</p>
+                                <p>your email is ${email}:</p>
+                <p>your password is ${password}</p>
+                
                 <a href="${verifyUrl}" target="_blank" style="color: #1a73e8;">Verify Account</a>
             </body>
         </html>`,
@@ -88,7 +91,7 @@ router.post("/login", async (req, res) => {
   // const { error, value } = loginSchema.validate(req.body);
   // if (error) return sendResponse(res, 400, null, true, error.message);
   const { email, password } = req.body;
-  const user = await User.findOne({ email: email }).lean();
+  const user = await User.findOne({ email: email });
   if (!user)
     return sendResponse(res, 403, null, true, "User is not registered.");
 
@@ -169,3 +172,27 @@ router.get("/verify", async (req, res) => {
         res.status(200).json({ message: "Account verified successfully." });
   
 });
+router.put("/change-password",  async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body
+
+    const user = await User.findById(req.user.id)
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password)
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" })
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12)
+    user.password = hashedPassword
+    await user.save()
+
+    res.json({ message: "Password changed successfully" })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: "Server error" })
+  }
+})

@@ -8,8 +8,8 @@ console.log(Data);
 mongoose.connect(Data).then(() => {
     console.log("======= coneected========");
     
-}).catch(() => {
-    console.log("======= connection failed=======");
+}).catch((e) => {
+    console.log("======= connection failed=======", e);
     
 });
 
@@ -24,15 +24,20 @@ const userSchema = new Schema({
         type: String,
         required : true,
     },
-    password: {
+    Cnic: {
         type: String,
         required : true,
     },
     isVerifired: {
         type: Boolean,
+        default: false,
         
+    }
+    , 
+    password: {
+        type : String,
     }
 })
 
-const User = mongoose.model("user", userSchema)
+const User = mongoose.model("user", userSchema )
 export default User;
